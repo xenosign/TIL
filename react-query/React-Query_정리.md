@@ -246,3 +246,72 @@ const uploadPostMutation = useMutation({
   업로드
 </button>;
 ```
+
+## Dependant Query
+
+- 반드시 순서가 지켜져야 하는 쿼리에 사용하는 기능
+- useQuery 의 enabled 옵션을 사용하여 해당 옵션이 true 인 경우에만 쿼리를 실행하도록 설정이 가능하다
+
+- userId 가 있는 경우에만 쿼리를 실행하도록 하는 코드
+
+```jsx
+const { data: user } = useQuery({
+  queryKey: ["user", email],
+  queryFn: getUserByEmail,
+});
+
+const userId = user?.id;
+
+const { data: projects } = useQuery({
+  queryKey: ["projects", userId],
+  queryFn: getProjectsByUser,
+  enabled: !!userId,
+});
+```
+
+- 서버에서 사용자 이름을 받아온 경우(로그인)에 컴포넌트 표시값을 바꾸는 코드
+
+```jsx
+function HomePage() {
+  const [currentUsername, setCurrentUsername] = useState("");
+
+  const { data: userInfoData, isPending: isUserInfoPending } = useQuery({
+    queryKey: ["userInfo"],
+    queryFn: () => getUserInfo(currentUsername),
+    enabled: !!currentUsername,
+  });
+
+  const loginMessage = isUserInfoPending
+    ? "로그인 중입니다..."
+    : `${userInfoData?.name}님 환영합니다!`;
+
+  return (
+    <>
+      <div>
+        {currentUsername ? (
+          loginMessage
+        ) : (
+          <button onClick={handleLoginButtonClick}>로그인</button>
+        )}
+      </div>
+    </>
+  );
+}
+```
+
+## removeQueries
+
+- 캐싱 된 쿼리를 지우는 기능
+- 쿼의 정보가 더이상 캐싱이 필요 없어진 경우에 사용
+
+- 로그아웃을 하면 기존에 로그인 된 사용자 정보 캐시를 삭제하는 코드
+
+```jsx
+const handleLogoutClick = () => {
+  queryClient.removeQueries({
+    queryKey: [QUERY_KEYS.USER_INFO, currentUsername],
+  });
+  setCurrentUsername(undefined);
+  navigate("/");
+};
+```

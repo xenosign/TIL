@@ -393,3 +393,67 @@ useEffect(() => {
 ```
 
 ![prefetch 이미지](./image/prefetch.png)
+
+## useInfiniteQuery() 사용하기
+
+- 전체 데이터를 한번에 받아서 캐싱한 이후, 사용하는 쿼리
+- useQuery 처럼 쿼리키에 맞게 캐싱하는 것이 아니라 data.pages 라는 배열에 모든 데이터를 받아서 처리한다
+- 따라서, initialPageParam 과 getNextPageParam 옵션을 설정해 줘야만 한다
+  - initialPageParam : 초기 페이지 설정값
+  - getNextPageParam : 아래의 파라미터 값을 통해 다음 페이지 값인 pageParam 을 리턴해야 한다
+    - lastPage, allPages, lastPageParam, allPageParams를 파라미터가 존재
+    - lastPage : 현재 보여지는 마지막 페이지의 데이터 배열
+    - allPages : 전체 데이터의 수와(count), 현재 페이지(currentPage), 다음 데이터 유무(hasMore) 상태 값과, 현재 페이지에 보여지는 데이터를 가지고 있는 배열
+    - lastPageParam : 현재 보여지는 마지막 페이지 값
+    - allPageParams : 모든 페이지의 각각 페이지 설정값
+
+```jsx
+import { useInfiniteQuery } from "@tanstack/react-query";
+
+const {
+  data: postsData,
+  isPending,
+  isError,
+} = useInfiniteQuery({
+  queryKey: ["posts"],
+  queryFn: ({ pageParam }) => getPosts(pageParam, PAGE_LIMIT),
+  initialPageParam: 0,
+  getNextPageParam: (lastPage, allPages, lastPageParam, allPageParams) =>
+    lastPage.hasMore ? lastPageParam + 1 : undefined,
+});
+```
+
+### 다음 페이지 불러오기
+
+- fetchNextPage() 를 실행하면 getNextPageParam() 함수의 리턴 값이 undefined 또는 null 이 아니면 해당 값을 pageParam 으로 전달하여 다음 페이지 데이터를 가져온다
+
+### 버튼 비활성화 하기
+
+- hasNextPage, isFetchingNextPage 상태값을 활용하면 된다
+- hasNextPage 상태 값
+  - 다음 페이지가 있는지 확인할 수 있는 boolean 값
+- isFetchingNextPage
+  - 다음 페이지 정보를 받아오는 중인제 확인이 가능한 boolean 값
+
+```jsx
+const {
+  data: postsData,
+  isPending,
+  isError,
+  hasNextPage,
+  fetchNextPage,
+  isFetchingNextPage,
+} = useInfiniteQuery({
+  queryKey: ["posts"],
+  queryFn: ({ pageParam }) => getPosts(pageParam, PAGE_LIMIT),
+  initialPageParam: 0,
+  getNextPageParam: (lastPage, allPages, lastPageParam, allPageParams) =>
+    lastPage.hasMore ? lastPageParam + 1 : undefined,
+});
+
+return (
+  <button onClick={fetchNextPage} disabled={!hasNextPage || isFetchingNextPage}>
+    더 불러오기
+  </button>
+);
+```

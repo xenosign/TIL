@@ -391,3 +391,5 @@ useEffect(() => {
   }
 }, [isPlaceholderData, postsData, queryClient, page]);
 ```
+
+![prefetch 이미지](./image/prefetch.png)

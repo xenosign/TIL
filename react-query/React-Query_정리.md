@@ -30,41 +30,35 @@ export default App;
 ## useQuery 기본
 
 - useQuery 는 컴포넌트 최초 로딩 시, 데이터를 Fetch 할 때 사용
+  - 리렌더링이 발생하면 쿼리키의 값을 기준으로 다시 refetch 를 결정한다
+  - 쿼리키가 다를 경우 계속 리렌더링을 유발한다
 - queryKey 와 queryFn 을 사용하여 데이터 요청을 보낼 수 있다
 - queryKey 는 ReactQuery 가 캐싱을 관리를 하는 기준이 된다
+  - 캐싱되는 데이터의 이름으로 생각하면 된다. 쿼리키의 이름이 같을 경우 refetch 하지 않으므로 주의해서 사용 필요
 - queryFn 은 요청을 보내는 함수, 즉 기존의 fetch 내용을 담으면 된다
 
 ```jsx
-async function getPosts() {
-  const response = await fetch(`${BASE_URL}/posts`);
-  return await response.json();
+import { useQuery } from "@tanstack/react-query";
+
+const BASE_URL = "http://localhost:4000";
+
+async function getPlayer(teamName) {
+  const url = `${BASE_URL}/players${teamName ? "?team=" + teamName : ""}`;
+  const response = await fetch(url);
+  const result = await response.json();
+  return result;
 }
 
-function HomePage() {
-  const { data: postData } = useQuery({
-    queryKey: ["posts"],
-    queryFn: getPosts,
+export default function Tone() {
+  const queryClient = useQueryClient();
+
+  const [teamName, setTeamName] = useState("t1");
+
+  const { data } = useQuery({
+    queryKey: ["team", teamName],
+    queryFn: () => getPlayer(teamName),
   });
-
-  const posts = postData?.results ?? [];
-
-  console.log(posts);
-
-  return (
-    <div>
-      <h1>홈페이지</h1>
-      <ul>
-        {posts.map((post) => (
-          <li key={post.id}>
-            {post.user.name}: {post.content}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
 }
-
-export default HomePage;
 ```
 
 ## staleTime & gcTime
@@ -79,9 +73,9 @@ export default HomePage;
   - 쿼리를 요청한 컴포넌트가 언마운트 되었을 때, 캐시에 저장 된 데이터를 삭제하는 시간 (기본 5분)
 
 ```jsx
-const { data: postData } = useQuery({
-  queryKey: ["posts"],
-  queryFn: getPosts,
+const { data } = useQuery({
+  queryKey: ["team", teamName],
+  queryFn: () => getPlayer(teamName),
   staleTime: 60 * 1000,
   gcTime: 60 * 1000 * 10,
 });
@@ -91,10 +85,11 @@ const { data: postData } = useQuery({
 
 ## Query Status
 
-### Pending
+### Pending & Loading
 
 - 요청 보내는 중
 - isPending 의 boolean 값으로 확인 가능
+- isLoaing 의 boolean 값으로 확인 가능
 
 ### Error
 
@@ -109,42 +104,47 @@ const { data: postData } = useQuery({
 - 아래와 같이 상태 값을 받아서 렌더링 처리 가능
 
 ```jsx
-function HomePage() {
+import { useEffect, useState } from "react";
+
+import { useQuery } from "@tanstack/react-query";
+import { getPlayer } from "../api/toneAPi";
+
+export default function Tone() {
   const queryClient = useQueryClient();
 
-  const {
-    data: postData,
-    isPending,
-    isError,
-  } = useQuery({
-    queryKey: ["posts"],
-    queryFn: getPosts,
-    staleTime: 60 * 1000,
-    gcTime: 60 * 1000 * 10,
+  const [teamName, setTeamName] = useState("t1");
+
+  const { data, isLoading, isError, isPlaceholderData } = useQuery({
+    queryKey: ["team", teamName],
+    queryFn: () => getPlayer(teamName),
   });
 
-  if (isPending) return <h1>로딩 중</h1>;
+  if (isLoading) return <h1>로딩중</h1>;
 
   if (isError) return <h1>에러 발생</h1>;
 
-  const posts = postData?.results ?? [];
-
-  console.log(posts);
+  const players = data ?? [];
 
   return (
     <div>
-      <h1>홈페이지</h1>
       <ul>
-        {posts.map((post) => (
-          <li key={post.id}>
-            {post.user.name}: {post.content}
-          </li>
-        ))}
+        <h1>{teamName}</h1>
+        {players.map((player) => {
+          return (
+            <li key={player.id}>
+              ID : {player.name} / 포지션 : {player.position}
+            </li>
+          );
+        })}
       </ul>
+      <button onClick={() => setTeamName("t1")}>T1</button>
+      <button onClick={() => setTeamName("kt")}>KT</button>
     </div>
   );
 }
 ```
+
+\*\* 수정 필요, 코드잇 개갞이
 
 ## useMutation
 

@@ -457,3 +457,6 @@ return (
   </button>
 );
 ```
+
+- https://tech.kakao.com/2022/06/13/react-query/
+- https://tech.kakaopay.com/post/react-query-1/

@@ -144,41 +144,55 @@ export default function Tone() {
 }
 ```
 
-\*\* 수정 필요, 코드잇 개갞이 하 이거 언제 다 고치냐 ㅋㅋㅋㅋ
-
 ## useMutation
 
 - 컴포넌트에서 새롭게 서버로 요청(Post, Patch, Delete)을 보낼 때 사용
 - useMutation 으로 mutation 을 등록하고, mutate() 로 실행하여 사용
 
 ```jsx
-function HomePage() {
-  // 기존 코드
+export default function Tone() {
+  const queryClient = useQueryClient();
 
-  const [content, setContent] = useState("");
-  const handleInputChange = (e) => {
-    setContent(e.target.value);
-  };
+  const [teamName, setTeamName] = useState("t1");
+  const [newPlayer, setNewPlayer] = useState({});
 
-  // useMutation 작성
-  const uploadPostMutation = useMutation({
-    mutationFn: (newPost) => uploadPost(newPost),
+  const inputRef = useRef();
+
+  const addPlayerMutation = useMutation({
+    mutationFn: (newPlayer) => {
+      addPlayer(teamName, newPlayer);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["team", teamName] });
+    },
   });
 
-  const handleSubmit = (e) => {
+  const handleAddPlayer = (e) => {
     e.preventDefault();
-    const newPost = { username: "codeit", content };
-    // mutate() 를 실행하여 mutationFn 실행
-    uploadPostMutation.mutate(newPost);
-    setContent("");
+
+    const newPlayer = {
+      name: inputRef.current?.value,
+      position: "SUB",
+    };
+
+    addPlayerMutation.mutate(newPlayer, {
+      onSuccess: () => alert("선수 등록 성공"),
+      onError: () => alert("선수 등록 실패"),
+    });
+
+    inputRef.current.value = "";
   };
 
-  if (isPending) return <h1>로딩 중</h1>;
-  if (isError) return <h1>에러 발생</h1>;
-
-  // 기존 코드
+  return (
+    <div>
+      <div>
+        <h2>선수 추가</h2>
+        <input type="text" ref={inputRef} />
+        <button onClick={handleAddPlayer}>추가하기</button>
+      </div>
+    </div>
+  );
 }
-export default HomePage;
 ```
 
 ### invalidateQueries() 함수
@@ -186,20 +200,8 @@ export default HomePage;
 - mutation 으로 업로드가 끝나면 자동으로 refatch 를 하도록 설정이 가능한 함수
 - 캐시에 있는 모든 쿼리를 invalidate 하는 함수로, 모든 쿼리가 만료 되었기 때문에 refetch 하여 최신화 한다
 
-- onSuccess 옵션에 invalidateQueries() 를 걸어서 'posts' 쿼리를 최신화 하는 코드
-
-```jsx
-import { useQueryClient } from "@tanstack/react-query";
-
-const queryClient = useQueryClient();
-
-const uploadPostMutation = useMutation({
-  mutationFn: (newPost) => uploadPost(newPost),
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ["posts"] });
-  },
-});
-```
+- onSuccess 옵션에 invalidateQueries() 를 걸어서 ['team', teamName] 쿼리를 최신화 하는 코드
+- useMutation 을 등록하는 파트의 onSuccess 에 해도 되고, 별도로 queryClient.invalidateQueries() 를 직접 실행하여 등록도 가능하다!
 
 ### useMutation() 함수의 콜백 옵션 (onMutate, onSuccess, onError, onSettled)
 
@@ -211,48 +213,70 @@ const uploadPostMutation = useMutation({
 - mutate 실행부는 컴포넌트에 종속되어 있으므로, 컴포넌트가 언마운트 되면 실행이 안된다! 주의 필요!
 
 ```jsx
-...
-// 선언부의 콜백 등록
-const uploadPostMutation = useMutation({
-  mutationFn: (newPost) => uploadPost(newPost),
+// useMutation 등록시 적용
+const addPlayerMutation = useMutation({
+  mutationFn: (newPlayer) => {
+    addPlayer(teamName, newPlayer);
+  },
   onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['posts'] });
+    queryClient.invalidateQueries({ queryKey: ["team", teamName] });
   },
 });
 
-// 실행부의 콜백 등록
-uploadPostMutation.mutate(newPost, {
-  onSuccess: () => {
-    alert('포스트가 성공적으로 업로드 되었습니다!');
-  },
-});
+// 실제로 추가 요청을 보내고 해당 결과에 따라 별도로 queryClient.invalidateQueries() 를 실행
+// mutate 실행부에서 사용
+const handleAddPlayer = (e) => {
+  e.preventDefault();
+
+  const newPlayer = {
+    name: inputRef.current?.value,
+    position: "SUB",
+  };
+
+  let ok = true;
+
+  addPlayerMutation.mutate(newPlayer, {
+    onSuccess: () => alert("선수 등록 성공"),
+    onError: () => {
+      ok = false;
+      return alert("선수 등록 실패");
+    },
+  });
+
+  inputRef.current.value = "";
+
+  if (ok) queryClient.invalidateQueries({ queryKey: ["team", teamName] });
+};
 ```
 
 ### Query Status 활용 가능!
 
 - useMutation 도 status 를 제공하므로 해당 값을 활용 가능
-
 - mutation 의 isPending 상태를 이용하여 버튼을 비활성화 하는 코드
 
 ```jsx
-const uploadPostMutation = useMutation({
-  mutationFn: (newPost) => uploadPost(newPost),
+const addPlayerMutation = useMutation({
+  mutationFn: (newPlayer) => {
+    addPlayer(teamName, newPlayer);
+  },
   onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ["posts"] });
+    queryClient.invalidateQueries({ queryKey: ["team", teamName] });
   },
 });
 
-<button disabled={uploadPostMutation.isPending || !content} type="submit">
-  업로드
+<button disabled={addPlayerMutation.isPending} onClick={handleAddPlayer}>
+  추가하기
 </button>;
 ```
+
+\*\* 여기서 부터
 
 ## Dependant Query
 
 - 반드시 순서가 지켜져야 하는 쿼리에 사용하는 기능
 - useQuery 의 enabled 옵션을 사용하여 해당 옵션이 true 인 경우에만 쿼리를 실행하도록 설정이 가능하다
-
 - userId 가 있는 경우에만 쿼리를 실행하도록 하는 코드
+- useMutation 에서는 사용이 불가능 하다
 
 ```jsx
 const { data: user } = useQuery({
@@ -267,36 +291,6 @@ const { data: projects } = useQuery({
   queryFn: getProjectsByUser,
   enabled: !!userId,
 });
-```
-
-- 서버에서 사용자 이름을 받아온 경우(로그인)에 컴포넌트 표시값을 바꾸는 코드
-
-```jsx
-function HomePage() {
-  const [currentUsername, setCurrentUsername] = useState("");
-
-  const { data: userInfoData, isPending: isUserInfoPending } = useQuery({
-    queryKey: ["userInfo"],
-    queryFn: () => getUserInfo(currentUsername),
-    enabled: !!currentUsername,
-  });
-
-  const loginMessage = isUserInfoPending
-    ? "로그인 중입니다..."
-    : `${userInfoData?.name}님 환영합니다!`;
-
-  return (
-    <>
-      <div>
-        {currentUsername ? (
-          loginMessage
-        ) : (
-          <button onClick={handleLoginButtonClick}>로그인</button>
-        )}
-      </div>
-    </>
-  );
-}
 ```
 
 ## removeQueries

@@ -269,8 +269,6 @@ const addPlayerMutation = useMutation({
 </button>;
 ```
 
-\*\* 여기서 부터
-
 ## Dependant Query
 
 - 반드시 순서가 지켜져야 하는 쿼리에 사용하는 기능
@@ -305,85 +303,31 @@ const handleLogoutClick = () => {
   queryClient.removeQueries({
     queryKey: [QUERY_KEYS.USER_INFO, currentUsername],
   });
-  setCurrentUsername(undefined);
+  setCurrentUsername("");
   navigate("/");
 };
 ```
 
 ## PaginatedQuery
 
-- 데이터를 받아올 때 특정 개수만 받아오도록 설정하는 쿼리
-- 백엔드에 데이터가 더 있을 경우, hasMore 상태 값이 true 로 들어온다 -> 이를 이용해서 데이터를 더 받아올지 말지 결정이 가능하다
-- 해당 방식으로 쿼리 갱신되면 새로운 쿼리로 인식되어 매번 로딩이 발생하며 화면이 깜빡이는 효과를 가진다. 좀 더 부드러운 전환을 위해 placeholderData 라는 것 설정 가능
+- 쿼리가 갱신되면 새로운 쿼리로 인식되어 매번 로딩이 발생하며 화면이 깜빡이는 효과를 가진다. 좀 더 부드러운 전환을 위해 placeholderData 라는 것 설정 가능
 - placeholderData 옵션에 keepPreviousData 혹은 (prevData) => prevData를 넣어주면 페이지가 새로 바뀌더라도 매번 pending 상태가 되지 않고, 이전의 데이터를 유지해서 보여주다가 새로운 데이터 fetch가 완료되면 자연스럽게 적용 시킨다
 - 현재 보여지는 데이터가 이전 placeholderData 인 경우 isPlaceholderData 상태 값을 이용하여 다음 데이터가 로딩되기 전에 다양한 상황에 대처할 수 있다 (ex, 다음 버튼 비활성화 등)
 
-```jsx
-// API 파트
-export async function getPosts(page = 0, limit = 10) {
-  const response = await fetch(`${BASE_URL}/posts?page=${page}&limit=${limit}`);
-  return await response.json();
-}
-
-// 컴포넌트 파트
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-  keepPreviousData,
-} from "@tanstack/react-query";
-
-function HomePage() {
-  const {
-    data: postData,
-    isPending,
-    isError,
-    isPlaceholderData,
-  } = useQuery({
-    queryKey: ["posts", page],
-    queryFn: () => getPosts(page, PAGE_LIMIT),
-    staleTime: 60 * 1000,
-    gcTime: 60 * 1000 * 10,
-    placeholderData: keepPreviousData,
-  });
-
-  // hasMore 이 적용된 버튼 파트
-  return (
-    <>
-      <div>
-        <button
-          disabled={page === 0}
-          onClick={() => setPage((old) => Math.max(old - 1, 0))}
-        >
-          &lt;
-        </button>
-        <button
-          // 더이상 데이터가 없을 경우 버튼 비활성화
-          disabled={!postsData?.hasMore}
-          onClick={() => setPage((old) => old + 1)}
-        >
-          &gt;
-        </button>
-      </div>
-    </>
-  );
-}
-```
-
 ### prefetchQuery
 
-- PaginatedQuery 사용시 미리 다음 페이지의 데이터를 fetch 하여 데이터 로딩 시간 없이 부드럽게(seamless) 인터페이스 구현 가능
-- 유틸을 통해 확인하면, page 1 이 미리 패치 되어 있는 것을 확인할 수 있다
+- 미리 다음에 필요한 데이터를 fetch 하여 데이터 로딩 시간 없이 부드럽게(seamless) 인터페이스 구현 가능
+- kt 팀의 정보를 버튼 클릭 시 요청 하는 것이 아니라, 미리 받아서 캐싱하여 부드러운 UI 구현
 
 ```jsx
 useEffect(() => {
-  if (!isPlaceholderData && postsData?.hasMore) {
+  if (teamName === "t1") {
     queryClient.prefetchQuery({
-      queryKey: ["posts", page + 1],
-      queryFn: () => getPosts(page + 1, PAGE_LIMIT),
+      queryKey: ["team", "kt"],
+      queryFn: () => getPlayer("kt"),
     });
   }
-}, [isPlaceholderData, postsData, queryClient, page]);
+}, [teamName, queryClient]);
 ```
 
 ![prefetch 이미지](./image/prefetch.png)

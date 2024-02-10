@@ -335,6 +335,9 @@ useEffect(() => {
 ## useInfiniteQuery() 사용하기
 
 - 전체 데이터를 한번에 받아서 캐싱한 이후, 사용하는 쿼리
+
+\*\* 기본적으로 어떤 데이터 들어오는지 확인 필요
+
 - useQuery 처럼 쿼리키에 맞게 캐싱하는 것이 아니라 data.pages 라는 배열에 모든 데이터를 받아서 처리한다
 - 따라서, initialPageParam 과 getNextPageParam 옵션을 설정해 줘야만 한다
   - initialPageParam : 초기 페이지 설정값

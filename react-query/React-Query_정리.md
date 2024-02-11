@@ -338,9 +338,13 @@ useEffect(() => {
 
 - useQuery 처럼 쿼리키에 맞게 캐싱하는 것이 아니라 data.pages 라는 배열에 모든 데이터를 받아서 처리한다
 - 따라서, initialPageParam 과 getNextPageParam 옵션을 설정해 줘야만 한다
+
   - initialPageParam : 초기 페이지 설정값
   - getNextPageParam : 아래의 파라미터 값을 통해 다음 페이지 값인 pageParam 을 리턴해야 한다
+
     - lastPage, allPages, lastPageParam, allPageParams를 파라미터가 존재
+
+    - 아마도 이 파트는 코드잇 백엔드에서 보내준 상태 값일듯 확인 필요!
     - lastPage : 현재 보여지는 마지막 페이지의 데이터 배열
     - allPages : 전체 데이터의 수와(count), 현재 페이지(currentPage), 다음 데이터 유무(hasMore) 상태 값과, 현재 페이지에 보여지는 데이터를 가지고 있는 배열
     - lastPageParam : 현재 보여지는 마지막 페이지 값
